@@ -5,14 +5,14 @@ using System.Reflection;
 using System.Reflection.Emit;
 
 using HarmonyLib;
-using TaleWorlds.CampaignSystem;
-using TaleWorlds.Core;
-using TaleWorlds.MountAndBlade;
-using TaleWorlds.InputSystem;
-using SandBox.View.Map;
 using TaleWorlds.CampaignSystem.GameMenus;
-using SandBox.View.Menu;
+using TaleWorlds.CampaignSystem;
+using TaleWorlds.InputSystem;
+using TaleWorlds.Core;
 using SandBox.ViewModelCollection.Nameplate;
+using SandBox.View.Map;
+using SandBox.View.Menu;
+
 
 namespace QOLfixes
 {
