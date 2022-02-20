@@ -44,12 +44,12 @@ namespace QOLfixes
         }
         
         [HarmonyTranspiler]
-        [HarmonyPatch(typeof(LoadingWindowViewModel), "SetNextGenericImage")]
+        [HarmonyPatch(typeof(LoadingWindowViewModel), nameof(LoadingWindowViewModel.SetNextGenericImage))]
         public static IEnumerable<CodeInstruction> PatchSetNextGenericImage(IEnumerable<CodeInstruction> instructions)
         {
-            MethodInfo CalculateLoadingScreenNumberMI = AccessTools.Method(typeof(RandomLoadingScreens), "CalculateLoadingScreenNumber");
-            FieldInfo currentImageFI = AccessTools.Field(typeof(LoadingWindowViewModel), "_currentImage");
-            FieldInfo handlePartialLoadActionFI = AccessTools.Field(typeof(LoadingWindowViewModel), "_handleSPPartialLoading");
+            MethodInfo CalculateLoadingScreenNumberMI = AccessTools.Method(typeof(RandomLoadingScreens), nameof(RandomLoadingScreens.CalculateLoadingScreenNumber));
+            FieldInfo currentImageFI = AccessTools.Field(typeof(LoadingWindowViewModel), nameof(LoadingWindowViewModel._currentImage));
+            FieldInfo handlePartialLoadActionFI = AccessTools.Field(typeof(LoadingWindowViewModel), nameof(LoadingWindowViewModel._handleSPPartialLoading));
             bool isReferencePointReached = false;
 
             //Calculate current Image and prev and next image numbers to unload/load

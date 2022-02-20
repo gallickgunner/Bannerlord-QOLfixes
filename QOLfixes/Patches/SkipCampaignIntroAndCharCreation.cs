@@ -15,7 +15,7 @@ using SandBox;
 namespace QOLfixes
 {
     [HarmonyPatch]
-    static class SkipIntroAndCharacterCreation
+    static class SkipCampaignIntroAndCharCreation
     {				
         public static Dictionary<string, Vec2> _startingPoints = new Dictionary<string, Vec2>
         {
@@ -44,69 +44,30 @@ namespace QOLfixes
                 new Vec2(207.04f, 389.04f)
             }
         };
-
         [HarmonyTranspiler]
-        [HarmonyPatch(typeof(TaleWorlds.MountAndBlade.Module), "SetInitialModuleScreenAsRootScreen")]
-        public static IEnumerable<CodeInstruction> PatchSetInitialModuleScreenAsRootScreen(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-        {
-            MethodInfo referenceMethod = AccessTools.Method(typeof(TaleWorlds.MountAndBlade.Module), "OnInitialModuleScreenActivated");
-            MethodInfo UtilitiesDisableLW = SymbolExtensions.GetMethodInfo(() => Utilities.DisableGlobalLoadingWindow());
-            MethodInfo LWDisableLW = SymbolExtensions.GetMethodInfo(() => LoadingWindow.DisableGlobalLoadingWindow());
-            MethodInfo SkipMainIntroMI = AccessTools.PropertyGetter(typeof(ConfigFileManager), "SkipMainIntro");
-            FieldInfo toMatchFI = AccessTools.Field(typeof(TaleWorlds.MountAndBlade.Module), "_splashScreenPlayed");
-
-            CodeInstruction prevInstruc = new CodeInstruction(OpCodes.Nop);
-            Label funcCall = generator.DefineLabel();
-            foreach (var instruc in instructions)
-            {
-                if (prevInstruc.opcode == OpCodes.Ldfld && prevInstruc.operand as FieldInfo == toMatchFI)
-                {
-                    yield return new CodeInstruction(OpCodes.Call, SkipMainIntroMI);
-                    yield return new CodeInstruction(OpCodes.Or);
-                }
-                else if (instruc.Calls(referenceMethod))
-                {
-                    yield return new CodeInstruction(OpCodes.Call, SkipMainIntroMI);
-                    yield return new CodeInstruction(OpCodes.Brfalse_S, funcCall);
-                    yield return new CodeInstruction(OpCodes.Call, LWDisableLW);
-                    yield return new CodeInstruction(OpCodes.Call, UtilitiesDisableLW);
-                    instruc.labels.Add(funcCall);
-                }
-                prevInstruc = instruc;
-                yield return instruc;
-            }
-        }
-
-        [HarmonyTranspiler]
-        [HarmonyPatch(typeof(SandBoxGameManager), "OnLoadFinished")]
+        [HarmonyPatch(typeof(SandBoxGameManager), nameof(SandBoxGameManager.OnLoadFinished))]
         public static IEnumerable<CodeInstruction> PatchOnLoadFinished(IEnumerable<CodeInstruction> instructions)
         {
-            MethodInfo fromMethod = AccessTools.Method(typeof(SandBoxGameManager), "LaunchSandboxCharacterCreation");
-            MethodInfo toMethod = SymbolExtensions.GetMethodInfo(() => SkipIntroAndCharacterCreation.HandleQuickStart());
-            MethodInfo GetDevMode = AccessTools.PropertyGetter(typeof(TaleWorlds.Core.Game), "IsDevelopmentMode");
+            MethodInfo fromMethod = AccessTools.Method(typeof(SandBoxGameManager), nameof(SandBoxGameManager.LaunchSandboxCharacterCreation));
+            MethodInfo toMethod = SymbolExtensions.GetMethodInfo(() => SkipCampaignIntroAndCharCreation.HandleQuickStart());
+            MethodInfo GetDevMode =   AccessTools.PropertyGetter(typeof(TaleWorlds.Core.Game), nameof(TaleWorlds.Core.Game.IsDevelopmentMode));
             CodeInstruction prevInstruc = new CodeInstruction(OpCodes.Nop);
+
             Label? funcEnd;
             foreach (var instruc in instructions)
             {
-                if (instruc.opcode == OpCodes.Ldftn && instruc.operand as MethodInfo == fromMethod)
+                if (ConfigFileManager.configs.skipCharacterCreation && instruc.opcode == OpCodes.Ldftn && instruc.operand as MethodInfo == fromMethod)
                     instruc.operand = toMethod;
 
-                if (prevInstruc.Calls(GetDevMode) && instruc.Branches(out funcEnd))
+                if (ConfigFileManager.configs.skipCampaignIntro && prevInstruc.Calls(GetDevMode) && instruc.Branches(out funcEnd))
                 {
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(ConfigFileManager), "SkipSandboxIntro"));
-                    yield return new CodeInstruction(OpCodes.Or);
+                    //Load true so it definitely skips loading campaign video
+                    yield return new CodeInstruction(OpCodes.Pop);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_1);
                 }
                 prevInstruc = instruc;
                 yield return instruc;
             }
-        }
-
-        [HarmonyReversePatch]
-        [HarmonyPatch(typeof(SandBoxGameManager), "LaunchSandboxCharacterCreation")]
-        public static void LaunchSandboxCharacterCreation()
-        {
-            //fake code to prevent inlining.
-            throw new NotImplementedException("It's a stub");
         }
 
         public static IEnumerable<CultureObject> GetCultures()
@@ -121,22 +82,17 @@ namespace QOLfixes
         }
 
         public static void HandleQuickStart()
-        {
-            if (!ConfigFileManager.QuickStart)
-            {
-                LaunchSandboxCharacterCreation();
-                return;
-            }
+        {            
 
             /* Skip creating CharacterCreationStages and what not entirely. Instead set values of Hero and Clan directly
-                * and initialize the call to MapState to load campaign.
-                */
+             * and initialize the call to MapState to load campaign.
+             */
 
             /*
-                * 1)  <CharacterCreationState> calls initializes which traces back to <CharacterCreationContentBase> which calls 
-                * 
-                * this.initializeMainheroStats()
-                */
+             * 1)  <CharacterCreationState> calls initializes which traces back to <CharacterCreationContentBase> which calls 
+             * 
+             * this.initializeMainheroStats()
+             */
 
             // Initialize Hero SKills/Attributes
             Hero.MainHero.HeroDeveloper.ClearHero();
@@ -158,7 +114,7 @@ namespace QOLfixes
 
             //Apply Culture
             Clan.PlayerClan.ChangeClanName(Helpers.FactionHelper.GenerateClanNameforPlayer());
-            CharacterObject.PlayerCharacter.Culture = SkipIntroAndCharacterCreation.GetCultures().GetRandomElementInefficiently<CultureObject>();
+            CharacterObject.PlayerCharacter.Culture = SkipCampaignIntroAndCharCreation.GetCultures().GetRandomElementInefficiently<CultureObject>();
             Clan.PlayerClan.Culture = CharacterObject.PlayerCharacter.Culture;
             Clan.PlayerClan.UpdateHomeSettlement(null);
             Clan.PlayerClan.Renown = 0f;
@@ -168,15 +124,15 @@ namespace QOLfixes
 
 
             /* 2) <CharacterCreationState> calls <FinalizeCharacterCreation()>
-                * This calls 
-                * 
-                * CharacterCreationScreen.OnCharacterCreationFinalized()
-                * this.CurrentCharacterCreationContent.OnCharacterCreationFinalized();
-                * CampaignEventDispatcher.Instance.OnCharacterCreationIsOver();
-                * 
-                * These calls mainly do the main work of applying culture and initializing main hero stats which we have done above,
-                * Hence we only need to initialize MapState now and teleport the camera onto map where party is.
-                */
+             * This calls 
+             * 
+             * CharacterCreationScreen.OnCharacterCreationFinalized()
+             * this.CurrentCharacterCreationContent.OnCharacterCreationFinalized();
+             * CampaignEventDispatcher.Instance.OnCharacterCreationIsOver();
+             * 
+             * These calls mainly do the main work of applying culture and initializing main hero stats which we have done above,
+             * Hence we only need to initialize MapState now and teleport the camera onto map where party is.
+             */
             LoadingWindow.EnableGlobalLoadingWindow();
             Game.Current.GameStateManager.CleanAndPushState(Game.Current.GameStateManager.CreateState<MapState>(), 0);
             PartyBase.MainParty.Visuals.SetMapIconAsDirty();

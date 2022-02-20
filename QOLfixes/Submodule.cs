@@ -12,7 +12,7 @@ namespace QOLfixes
     {
         private static string error = "";
         private static bool exceptionThrown = false;
-        protected override void OnSubModuleLoad()
+        public override void OnSubModuleLoad()
         {
             try
             { 
@@ -20,19 +20,22 @@ namespace QOLfixes
                 ConfigFileManager.LoadConfigFile(out error);
                 Harmony harmony = new Harmony("GG.Utilities.QOLfixes");
                 
-                if(ConfigFileManager.SkipMainIntro || ConfigFileManager.SkipSandboxIntro || ConfigFileManager.QuickStart)
-                    harmony.CreateClassProcessor(typeof(SkipIntroAndCharacterCreation)).Patch();
+                if(ConfigFileManager.configs.skipMainIntro)
+                    harmony.CreateClassProcessor(typeof(SkipMainIntro)).Patch();
 
-                if (!ConfigFileManager.PauseOnEnterSettlement)
+                if(ConfigFileManager.configs.skipCampaignIntro || ConfigFileManager.configs.skipCharacterCreation)
+                    harmony.CreateClassProcessor(typeof(SkipCampaignIntroAndCharCreation)).Patch();
+
+                if (!ConfigFileManager.configs.pauseOnEnterSettlement)
                     harmony.CreateClassProcessor(typeof(AutoPauseManager)).Patch();
                 
-                if(ConfigFileManager.RandomLoadingScreen)
+                if(ConfigFileManager.configs.randomLoadingScreen)
                     harmony.CreateClassProcessor(typeof(RandomLoadingScreens)).Patch();
                 
-                if (ConfigFileManager.MaintainFastForward)
+                if (ConfigFileManager.configs.maintainFastForwardOnSingleClick)
                     harmony.CreateClassProcessor(typeof(MaintainFastForward)).Patch();
                 
-                if (ConfigFileManager.EnableWaypoints)
+                if (ConfigFileManager.configs.waypoints)
                     harmony.CreateClassProcessor(typeof(WaypointManager)).Patch();
                 else
                 {
@@ -49,7 +52,7 @@ namespace QOLfixes
                 FileLog.Log("Message: " + e.ToString());
             }
         }
-        protected override void OnBeforeInitialModuleScreenSetAsRoot()
+        public override void OnBeforeInitialModuleScreenSetAsRoot()
         {
             base.OnBeforeInitialModuleScreenSetAsRoot();
 
@@ -59,7 +62,7 @@ namespace QOLfixes
                 InformationManager.DisplayMessage(new InformationMessage("Error loading one or more mods. Check \"harmony.log\" for detailed report."));
         }
 
-        protected override void OnGameStart(Game game, IGameStarter gameStarter)
+        public override void OnGameStart(Game game, IGameStarter gameStarter)
         {
             if (game.GameType is Campaign)
             {				

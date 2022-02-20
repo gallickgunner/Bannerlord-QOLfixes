@@ -32,7 +32,7 @@ namespace QOLfixes
             };
             base.RegisterHotKey(new HotKey("IncreaseFastForwardSpeed", "MapHotKeyCategory", keys, HotKey.Modifiers.Shift, HotKey.Modifiers.None), true);
 
-            if (!ConfigFileManager.EnableWaypoints)
+            if (!ConfigFileManager.configs.waypoints)
                 return;
 
             //Defining hotkey for adding waypoint is redundant since coding logic requires this to be hardcoded inside callback of clicking on a settlementNameplate.
