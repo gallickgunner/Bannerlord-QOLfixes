@@ -16,7 +16,6 @@ namespace QOLfixes
             public bool autoPauseInMissions = true;
             public bool maintainFastForwardOnSingleClick = true;
             public bool waypoints = true;
-            public bool horsesInTowns = true;
         }
 
         public static ConfigData configs = new ConfigData();

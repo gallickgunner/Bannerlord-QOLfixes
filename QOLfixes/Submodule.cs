@@ -5,6 +5,7 @@ using TaleWorlds.MountAndBlade;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.InputSystem;
 using SandBox.View.Map;
+using TaleWorlds.Library;
 
 namespace QOLfixes
 {

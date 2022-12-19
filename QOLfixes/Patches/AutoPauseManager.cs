@@ -7,9 +7,11 @@ using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.GameMenus;
 using TaleWorlds.MountAndBlade;
-using TaleWorlds.CampaignSystem.ViewModelCollection.Map;
 using TaleWorlds.Library;
 using TaleWorlds.Core;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.ViewModelCollection.Map.MapBar;
+using TaleWorlds.CampaignSystem.Settlements;
 
 namespace QOLfixes
 {
@@ -27,12 +29,12 @@ namespace QOLfixes
                 CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(null, new Action<MobileParty, Settlement>(AutoPauseManager.OnSettlementLeft));
                 CampaignEvents.GameMenuOpened.AddNonSerializedListener(null, new Action<MenuCallbackArgs>(AutoPauseManager.OnGameMenuOpened));
             }
-            
-            if(ConfigFileManager.configs.autoPauseInMissions)
+
+            if (ConfigFileManager.configs.autoPauseInMissions)
             {
                 CampaignEvents.OnMissionStartedEvent.AddNonSerializedListener(null, new Action<IMission>(AutoPauseManager.OnMissionStarted));
                 CampaignEvents.OnMissionEndedEvent.AddNonSerializedListener(null, new Action<IMission>(AutoPauseManager.OnMissionEnded));
-            }			
+            }
         }
 
         public static void OnSettlementEntered(MobileParty party, Settlement sett, Hero hero)
@@ -86,9 +88,9 @@ namespace QOLfixes
         {
             bool targetReached = (2f * instance.Position2D - instance.TargetPosition - nextTargetPosition).LengthSquared < 1E-08f;
             bool aiBehavior = (instance.DefaultBehavior == AiBehavior.EngageParty || instance.DefaultBehavior == AiBehavior.EscortParty) && 
-                instance.AiBehaviorObject != null && instance.AiBehaviorObject.IsValid && 
-                instance.AiBehaviorObject.IsActive && instance.AiBehaviorObject.IsMobile &&
-                instance.AiBehaviorObject.MobileParty.CurrentSettlement != null;
+                instance.AiBehaviorPartyBase != null && instance.AiBehaviorPartyBase.IsValid && 
+                instance.AiBehaviorPartyBase.IsActive && instance.AiBehaviorPartyBase.IsMobile &&
+                instance.AiBehaviorPartyBase.MobileParty.CurrentSettlement != null;
 
             return ( (targetReached && instance.CurrentSettlement == null) || instance.DefaultBehavior == AiBehavior.Hold || aiBehavior);
         }

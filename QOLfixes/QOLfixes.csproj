@@ -39,6 +39,7 @@
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\TaleWorldAssemblies\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="SandBox">
       <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\SandBox.dll</HintPath>
@@ -236,6 +237,10 @@
       <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.MountAndBlade.Helpers.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade.Launcher.Library">
+      <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.MountAndBlade.Launcher.Library.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="TaleWorlds.MountAndBlade.Launcher.Steam">
       <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.MountAndBlade.Launcher.Steam.dll</HintPath>
       <Private>False</Private>
@@ -284,21 +289,20 @@
       <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.PlayerServices.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="TaleWorlds.PowerText">
-      <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.PowerText.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="TaleWorlds.PSAI">
       <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.PSAI.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="TaleWorlds.SaveSystem, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="TaleWorlds.SaveSystem">
       <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.SaveSystem.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="TaleWorlds.Starter.DotNetCore">
-      <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.Starter.DotNetCore.dll</HintPath>
+    <Reference Include="TaleWorlds.ScreenSystem">
+      <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.ScreenSystem.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.ServiceDiscovery.Client">
+      <HintPath>..\..\TaleWorldAssemblies\publicized_assemblies\TaleWorlds.ServiceDiscovery.Client.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="TaleWorlds.Starter.Library">

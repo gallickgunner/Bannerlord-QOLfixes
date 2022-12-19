@@ -5,12 +5,17 @@ using System.Reflection.Emit;
 
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Extensions;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.GameState;
+using StoryMode;
 using TaleWorlds.Core;
 using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
 using SandBox;
+using TaleWorlds.MountAndBlade;
 
 namespace QOLfixes
 {
@@ -46,7 +51,7 @@ namespace QOLfixes
         };
         [HarmonyTranspiler]
         [HarmonyPatch(typeof(SandBoxGameManager), nameof(SandBoxGameManager.OnLoadFinished))]
-        public static IEnumerable<CodeInstruction> PatchOnLoadFinished(IEnumerable<CodeInstruction> instructions)
+        public static IEnumerable<CodeInstruction> PatchSandboxOnLoadFinished(IEnumerable<CodeInstruction> instructions)
         {
             MethodInfo fromMethod = AccessTools.Method(typeof(SandBoxGameManager), nameof(SandBoxGameManager.LaunchSandboxCharacterCreation));
             MethodInfo toMethod = SymbolExtensions.GetMethodInfo(() => SkipCampaignIntroAndCharCreation.HandleQuickStart());
@@ -58,6 +63,12 @@ namespace QOLfixes
             {
                 if (ConfigFileManager.configs.skipCharacterCreation && instruc.opcode == OpCodes.Ldftn && instruc.operand as MethodInfo == fromMethod)
                     instruc.operand = toMethod;
+
+                if (ConfigFileManager.configs.skipCharacterCreation && instruc.opcode == OpCodes.Call && instruc.operand as MethodInfo == fromMethod)
+                {
+                    yield return new CodeInstruction(OpCodes.Pop);
+                    instruc.operand = toMethod;
+                }
 
                 if (ConfigFileManager.configs.skipCampaignIntro && prevInstruc.Calls(GetDevMode) && instruc.Branches(out funcEnd))
                 {
@@ -113,7 +124,8 @@ namespace QOLfixes
             }
 
             //Apply Culture
-            Clan.PlayerClan.ChangeClanName(Helpers.FactionHelper.GenerateClanNameforPlayer());
+            TextObject to = Helpers.FactionHelper.GenerateClanNameforPlayer();
+            Clan.PlayerClan.ChangeClanName(to, to);
             CharacterObject.PlayerCharacter.Culture = SkipCampaignIntroAndCharCreation.GetCultures().GetRandomElementInefficiently<CultureObject>();
             Clan.PlayerClan.Culture = CharacterObject.PlayerCharacter.Culture;
             Clan.PlayerClan.UpdateHomeSettlement(null);
@@ -153,8 +165,7 @@ namespace QOLfixes
             MapState mapState;
             if ((mapState = (GameStateManager.Current.ActiveState as MapState)) != null)
             {
-                mapState.Handler.ResetCamera();
-                mapState.Handler.TeleportCameraToMainParty();
+                mapState.Handler.ResetCamera(true, true);
             }
         }
     }

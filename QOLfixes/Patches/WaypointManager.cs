@@ -5,11 +5,16 @@ using System.Reflection.Emit;
 
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.GameState;
+using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.InputSystem;
 using TaleWorlds.Core;
 using SandBox.ViewModelCollection.Nameplate;
 using SandBox.View.Map;
 using SandBox.View.Menu;
+using TaleWorlds.Library;
+using TaleWorlds.CampaignSystem.Encounters;
 
 namespace QOLfixes
 {
