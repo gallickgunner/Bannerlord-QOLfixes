@@ -9,11 +9,13 @@ namespace QOLfixes
         public class ConfigData
         {
             public bool skipMainIntro = true;
-            public bool skipCampaignIntro = true;
+            public bool skipCampaignIntro = false;
             public bool skipCharacterCreation = false;
             public bool randomLoadingScreen = true;
-            public bool pauseOnEnterSettlement = false;
-            public bool autoPauseInMissions = true;
+            public bool autoPauseOnEnterSettlement = true;
+            public bool pauseOnMenuOverlays = true;
+            public bool autoPauseInMissionsOnly = false;
+            public bool leaveSettlementOnClick = true;            
             public bool maintainFastForwardOnSingleClick = true;
             public bool waypoints = true;
         }

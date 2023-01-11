@@ -44,12 +44,12 @@ namespace QOLfixes
         }
         
         [HarmonyTranspiler]
-        [HarmonyPatch(typeof(LoadingWindowViewModel), nameof(LoadingWindowViewModel.SetNextGenericImage))]
+        [HarmonyPatch(typeof(LoadingWindowViewModel), "SetNextGenericImage")]
         public static IEnumerable<CodeInstruction> PatchSetNextGenericImage(IEnumerable<CodeInstruction> instructions)
         {
             MethodInfo CalculateLoadingScreenNumberMI = AccessTools.Method(typeof(RandomLoadingScreens), nameof(RandomLoadingScreens.CalculateLoadingScreenNumber));
-            FieldInfo currentImageFI = AccessTools.Field(typeof(LoadingWindowViewModel), nameof(LoadingWindowViewModel._currentImage));
-            FieldInfo handlePartialLoadActionFI = AccessTools.Field(typeof(LoadingWindowViewModel), nameof(LoadingWindowViewModel._handleSPPartialLoading));
+            FieldInfo currentImageFI = AccessTools.Field(typeof(LoadingWindowViewModel), "_currentImage");
+            FieldInfo handlePartialLoadActionFI = AccessTools.Field(typeof(LoadingWindowViewModel), "_handleSPPartialLoading");
             bool isReferencePointReached = false;
 
             //Calculate current Image and prev and next image numbers to unload/load
@@ -76,7 +76,12 @@ namespace QOLfixes
         public static void CalculateLoadingScreenNumber(out int currImageNumber, out int unLoadImageNumber, out int loadImageNo)
         {
             int rand;
-            if(Game.Current != null && Game.Current.RandomGenerator != null)
+            var propget = AccessTools.PropertyGetter(typeof(Game), "RandomGenerator");
+            MBFastRandom obj = null;
+            if(Game.Current != null)
+                obj = (MBFastRandom)propget.Invoke(Game.Current, null);
+
+            if (Game.Current != null && obj != null)
                 rand = MBRandom.RandomInt(1, totalLoadingScreens);
             else
                 rand = randomGen.Next(1, totalLoadingScreens);
@@ -85,7 +90,7 @@ namespace QOLfixes
             //We don't want to keep calling Random for a long time. If it can't find a unique, just dequeue the oldest one.
             while (hotIndexes.Contains(rand) && i < queueCapacity)
             {
-                if (Game.Current != null && Game.Current.RandomGenerator != null)
+                if (Game.Current != null && obj != null)
                     rand = MBRandom.RandomInt(1, totalLoadingScreens);
                 else
                     rand = randomGen.Next(1, totalLoadingScreens);

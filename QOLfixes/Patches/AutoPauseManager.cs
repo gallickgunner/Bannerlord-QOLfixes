@@ -12,6 +12,9 @@ using TaleWorlds.Core;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Map.MapBar;
 using TaleWorlds.CampaignSystem.Settlements;
+using SandBox.View.Map;
+using SandBox.View.Menu;
+using TaleWorlds.InputSystem;
 
 namespace QOLfixes
 {
@@ -23,17 +26,41 @@ namespace QOLfixes
         public static bool isFirstGameMenu = true;
         public static void RegisterEvent()
         {
-            if (!ConfigFileManager.configs.pauseOnEnterSettlement)
+            if (!ConfigFileManager.configs.autoPauseOnEnterSettlement)
             {
                 CampaignEvents.SettlementEntered.AddNonSerializedListener(null, new Action<MobileParty, Settlement, Hero>(AutoPauseManager.OnSettlementEntered));
+                
                 CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(null, new Action<MobileParty, Settlement>(AutoPauseManager.OnSettlementLeft));
+                
                 CampaignEvents.GameMenuOpened.AddNonSerializedListener(null, new Action<MenuCallbackArgs>(AutoPauseManager.OnGameMenuOpened));
             }
 
-            if (ConfigFileManager.configs.autoPauseInMissions)
+            if (ConfigFileManager.configs.autoPauseInMissionsOnly)
             {
                 CampaignEvents.OnMissionStartedEvent.AddNonSerializedListener(null, new Action<IMission>(AutoPauseManager.OnMissionStarted));
                 CampaignEvents.OnMissionEndedEvent.AddNonSerializedListener(null, new Action<IMission>(AutoPauseManager.OnMissionEnded));
+            }
+        }
+
+        public static void HandleHotkeyPresses(MapScreen instance, MenuViewContext viewContext)
+        {
+            InputContext inputCtx = instance.SceneLayer.Input;
+            
+            //Restore changing time through hotkeys when in main menus
+            if (!Campaign.Current.TimeControlModeLock && Campaign.Current.CurrentMenuContext != null)
+            {
+                bool isMainMenu = Campaign.Current.CurrentMenuContext.GameMenu.StringId == "village" || Campaign.Current.CurrentMenuContext.GameMenu.StringId == "town" ||
+                  Campaign.Current.CurrentMenuContext.GameMenu.StringId == "castle";
+
+                if(isMainMenu)
+                {
+                    if (inputCtx.IsGameKeyPressed(59))
+                        Campaign.Current.SetTimeSpeed(0);
+                    if (inputCtx.IsGameKeyPressed(60))
+                        Campaign.Current.SetTimeSpeed(1);
+                    if (inputCtx.IsGameKeyPressed(61))
+                        Campaign.Current.SetTimeSpeed(2);
+                }
             }
         }
 
@@ -50,13 +77,12 @@ namespace QOLfixes
                 isFirstGameMenu = true;
         }
 
-
         public static void OnGameMenuOpened(MenuCallbackArgs eventArg)
         {
-            /* We restore time here if this is the first menu appearing. Since this event occurs after `OnSettlementEntered` and after `ActivateGameMenu` 
+            /* We restore time here if this is the first main menu (town/castle/village) appearing. Since this event occurs after `OnSettlementEntered` and after `ActivateGameMenu` 
              * which occurs after `OnSettlementEntered` and stops time.
              */
-            if (isFirstGameMenu)
+            if (isFirstGameMenu && (eventArg.MenuContext.GameMenu.StringId == "village" || eventArg.MenuContext.GameMenu.StringId == "town" || eventArg.MenuContext.GameMenu.StringId == "castle"))
             {
                 isFirstGameMenu = false;
                 Campaign.Current.TimeControlMode = prevTimeControlMode;
@@ -95,9 +121,40 @@ namespace QOLfixes
             return ( (targetReached && instance.CurrentSettlement == null) || instance.DefaultBehavior == AiBehavior.Hold || aiBehavior);
         }
 
-        [HarmonyTranspiler]
-        [HarmonyPatch(typeof(MapTimeControlVM), nameof(MapTimeControlVM.Tick))]
-        public static IEnumerable<CodeInstruction> PatchTick(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        public static void ModifiedExecuteTimeControlChange(MapTimeControlVM instance, int selectedTimeSpeed)
+        {
+            bool isMainMenu = false;
+            if (Campaign.Current.CurrentMenuContext != null)
+            {
+                isMainMenu = Campaign.Current.CurrentMenuContext.GameMenu.StringId == "village" || Campaign.Current.CurrentMenuContext.GameMenu.StringId == "town" ||
+                  Campaign.Current.CurrentMenuContext.GameMenu.StringId == "castle";
+            }
+
+            if (Campaign.Current.CurrentMenuContext == null || (Campaign.Current.CurrentMenuContext.GameMenu.IsWaitActive && !Campaign.Current.TimeControlModeLock) || isMainMenu)
+            {
+                int num = selectedTimeSpeed;
+                if (instance.TimeFlowState == 3 && num == 2)
+                {
+                    num = 4;
+                }
+                else if (instance.TimeFlowState == 4 && num == 1)
+                {
+                    num = 3;
+                }
+                else if (instance.TimeFlowState == 2 && num == 0)
+                {
+                    num = 6;
+                }
+                if (num != instance.TimeFlowState)
+                {
+                    instance.TimeFlowState = num;
+                    AccessTools.Method(typeof(MapTimeControlVM), "SetTimeSpeed").Invoke(instance, new object[] { (selectedTimeSpeed) });
+                }
+            }
+        }
+
+        //Manually patch it based on options
+        public static IEnumerable<CodeInstruction> PatchMapTimeControlVMTick(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             Label funcEnd = generator.DefineLabel();
             LocalBuilder IsCenterPanelEnabled = generator.DeclareLocal(typeof(bool));
@@ -123,15 +180,14 @@ namespace QOLfixes
                 }
                 yield return instruc;
             }
-        }
+        }        
 
         [HarmonyTranspiler]
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.ComputeIsWaiting))]
         public static IEnumerable<CodeInstruction> PatchComputeIsWaiting(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
-            CodeInstruction prevInstruc = new CodeInstruction(OpCodes.Nop);
             MethodInfo ModifiedComputeIsWaitingMI = SymbolExtensions.GetMethodInfo(() => AutoPauseManager.ModifiedComputeIsWaiting(default, default));
-            FieldInfo nextTargetPositionFI = AccessTools.Field(typeof(MobileParty), nameof(MobileParty._nextTargetPosition));
+            FieldInfo nextTargetPositionFI = AccessTools.Field(typeof(MobileParty), "_nextTargetPosition");
 
             //Call our modified function and bypass original...
             yield return new CodeInstruction(OpCodes.Ldarg_0);
@@ -141,31 +197,18 @@ namespace QOLfixes
             yield return new CodeInstruction(OpCodes.Ret);
         }
 
-        [HarmonyPostfix]
+        [HarmonyTranspiler]
         [HarmonyPatch(typeof(MapTimeControlVM), nameof(MapTimeControlVM.ExecuteTimeControlChange))]
-        public static void PatchExecuteTimeControlChange(int selectedTimeSpeed, ref MapTimeControlVM __instance, ref int ____timeFlowState)
+        public static IEnumerable<CodeInstruction> PatchExecuteTimeControlChange(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
-            if (!Campaign.Current.TimeControlModeLock)
-            {
-                int num = selectedTimeSpeed;
-                if (____timeFlowState == 3 && num == 2)
-                {
-                    num = 4;
-                }
-                else if (____timeFlowState == 4 && num == 1)
-                {
-                    num = 3;
-                }
-                else if (____timeFlowState == 2 && num == 0)
-                {
-                    num = 6;
-                }
-                if (num != ____timeFlowState)
-                {
-                    __instance.TimeFlowState = num;
-                    AccessTools.Method(typeof(MapTimeControlVM), nameof(MapTimeControlVM.SetTimeSpeed)).Invoke(__instance, new object[] { (selectedTimeSpeed) });
-                }
-            }
+            MethodInfo ModifiedExecuteTimeControlChangeMI = SymbolExtensions.GetMethodInfo(() => 
+                    AutoPauseManager.ModifiedExecuteTimeControlChange(default, default));
+
+            //Call our modified function and bypass original...
+            yield return new CodeInstruction(OpCodes.Ldarg_0);
+            yield return new CodeInstruction(OpCodes.Ldarg_1);
+            yield return new CodeInstruction(OpCodes.Call, ModifiedExecuteTimeControlChangeMI);
+            yield return new CodeInstruction(OpCodes.Ret);
         }
     }
 }

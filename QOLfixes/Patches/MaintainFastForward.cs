@@ -14,7 +14,7 @@ namespace QOLfixes
     public static class MaintainFastForward
     {
         [HarmonyTranspiler]
-        [HarmonyPatch(typeof(MapScreen), nameof(MapScreen.HandleMouse))]
+        [HarmonyPatch(typeof(MapScreen), "HandleMouse")]
         public static IEnumerable<CodeInstruction> PatchHandleMouse(IEnumerable<CodeInstruction> instructions)
         {
             MethodInfo SetTimeControlModeMI = AccessTools.PropertySetter(typeof(Campaign), nameof(Campaign.TimeControlMode));

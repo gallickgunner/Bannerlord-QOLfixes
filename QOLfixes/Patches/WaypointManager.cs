@@ -15,6 +15,7 @@ using SandBox.View.Map;
 using SandBox.View.Menu;
 using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.GameMenus;
 
 namespace QOLfixes
 {
@@ -112,30 +113,6 @@ namespace QOLfixes
                     }
                 }
             }
-
-            //Restore changing time through hotkeys when in menus
-            if (!Campaign.Current.TimeControlModeLock && Campaign.Current.CurrentMenuContext != null && !Campaign.Current.CurrentMenuContext.GameMenu.IsWaitActive)
-            {
-                if (inputCtx.IsGameKeyPressed(58))
-                    Campaign.Current.SetTimeSpeed(0);
-                if (inputCtx.IsGameKeyPressed(59))
-                    Campaign.Current.SetTimeSpeed(1);
-                if (inputCtx.IsGameKeyPressed(60))
-                    Campaign.Current.SetTimeSpeed(2);
-            }
-            
-            //Change fast forward speed through hotkeys.
-            if (inputCtx.IsHotKeyPressed(CustomMapHotkeyCategory.IncreaseFFSpeedKeyName))
-            {
-                Campaign.Current.SpeedUpMultiplier += 0.5f;
-                InformationManager.DisplayMessage(new InformationMessage("Fast Forward Speed set to: " + Campaign.Current.SpeedUpMultiplier.ToString()));
-            }
-            else if (inputCtx.IsHotKeyPressed(CustomMapHotkeyCategory.DecreaseFFSpeedKeyName))
-            {
-                if (Campaign.Current.SpeedUpMultiplier > 4.0f)
-                    Campaign.Current.SpeedUpMultiplier -= 0.5f;
-                InformationManager.DisplayMessage(new InformationMessage("Fast Forward Speed set to: " + Campaign.Current.SpeedUpMultiplier.ToString()));
-            }
         }
 
         [HarmonyPostfix]
@@ -157,37 +134,8 @@ namespace QOLfixes
                 isPlayerLeaving = false;
             }
         }
-
-        /* Register our custom hotkey category for hotkeys to work
-         */
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(MapScreen), nameof(MapScreen.OnInitialize))]
-        public static void PatchOnInitialize(ref MapScreen __instance)
-        {
-            __instance.SceneLayer.Input.RegisterHotKeyCategory(HotKeyManager.GetCategory("CustomMapHotkeyCategory"));
-        }
-
-
-        /* Transpiler to check for hotkey presses in FrameTick function
-         */
-        [HarmonyTranspiler]
-        [HarmonyPatch(typeof(MapScreen), nameof(MapScreen.OnFrameTick))]
-        public static IEnumerable<CodeInstruction> PatchOnFrameTick(IEnumerable<CodeInstruction> instructions)
-        {
-            MethodInfo HandleHotkeyPressesMI = SymbolExtensions.GetMethodInfo(() => WaypointManager.HandleHotkeyPresses(null, null));
-
-            //Add a call to our own method which manages hotkey presses
-            yield return new CodeInstruction(OpCodes.Ldarg_0);
-            yield return new CodeInstruction(OpCodes.Ldarg_0);
-            yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(MapScreen), nameof(MapScreen._menuViewContext)));
-            yield return new CodeInstruction(OpCodes.Call, HandleHotkeyPressesMI);
-
-            foreach (var instruc in instructions)
-            {
-                yield return instruc;
-            }
-        }
-
+              
+        
         /* Transpiler to handle camera zoom logic. The zoom happens on left clicking settlement Nameplate.
          * In other words this function is actually the event callback on shift-leftclicking the nameplate
          * We want to make sure that shift-leftclicking doesn't make the camera zoom.
@@ -228,7 +176,7 @@ namespace QOLfixes
 
             //Add our own method that executes custom logic. Run original only if current settlement is not a waypoint.            
             yield return new CodeInstruction(OpCodes.Ldarg_0);
-            yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(SettlementNameplateVM), nameof(SettlementNameplateVM._isTrackedManually)));
+            yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(SettlementNameplateVM), "_isTrackedManually"));
 
             foreach (var instruc in instructions)
             {
@@ -248,7 +196,7 @@ namespace QOLfixes
          * we have to remove the old check and add this new one.
          */
         [HarmonyTranspiler]
-        [HarmonyPatch(typeof(SettlementNameplateVM), nameof(SettlementNameplateVM.Track))]
+        [HarmonyPatch(typeof(SettlementNameplateVM), "Track")]
         public static IEnumerable<CodeInstruction> PatchTrack(IEnumerable<CodeInstruction> instructions)
         {
             MethodInfo isTrackedMI = AccessTools.PropertySetter(typeof(SettlementNameplateVM), nameof(SettlementNameplateVM.IsTracked));
@@ -265,7 +213,7 @@ namespace QOLfixes
                 {
                     yield return instruc;
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(SettlementNameplateVM), nameof(SettlementNameplateVM._isTrackedManually)));
+                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(SettlementNameplateVM), "_isTrackedManually"));
                     instructionSet = true;
                     continue;
                 }

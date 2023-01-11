@@ -1,0 +1,11 @@
+{
+	"skipMainIntro": true,
+	"skipCampaignIntro": false,
+	"skipCharacterCreation": false,
+	"randomLoadingScreen": true,
+	"autoPauseOnEnterSettlement": false,
+	"pauseOnMenuOverlays": true,
+	"autoPauseInMissionsOnly": false,
+	"maintainFastForwardOnSingleClick": true,
+	"waypoints": true
+}

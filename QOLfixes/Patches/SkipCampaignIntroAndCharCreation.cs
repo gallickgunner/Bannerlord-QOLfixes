@@ -15,7 +15,6 @@ using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
 using SandBox;
-using TaleWorlds.MountAndBlade;
 
 namespace QOLfixes
 {
@@ -49,11 +48,13 @@ namespace QOLfixes
                 new Vec2(207.04f, 389.04f)
             }
         };
+        
+        
         [HarmonyTranspiler]
         [HarmonyPatch(typeof(SandBoxGameManager), nameof(SandBoxGameManager.OnLoadFinished))]
         public static IEnumerable<CodeInstruction> PatchSandboxOnLoadFinished(IEnumerable<CodeInstruction> instructions)
         {
-            MethodInfo fromMethod = AccessTools.Method(typeof(SandBoxGameManager), nameof(SandBoxGameManager.LaunchSandboxCharacterCreation));
+            MethodInfo fromMethod = AccessTools.Method(typeof(SandBoxGameManager), "LaunchSandboxCharacterCreation");
             MethodInfo toMethod = SymbolExtensions.GetMethodInfo(() => SkipCampaignIntroAndCharCreation.HandleQuickStart());
             MethodInfo GetDevMode =   AccessTools.PropertyGetter(typeof(TaleWorlds.Core.Game), nameof(TaleWorlds.Core.Game.IsDevelopmentMode));
             CodeInstruction prevInstruc = new CodeInstruction(OpCodes.Nop);
